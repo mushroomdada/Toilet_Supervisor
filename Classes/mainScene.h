@@ -15,6 +15,8 @@ private:
 	mainScene();
 	~mainScene();
 
+	void TipScene(Ref* sender);
+	void RankScene(Ref* sender);
 	EventDispatcher* dispatcher;
 
 };

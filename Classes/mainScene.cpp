@@ -1,4 +1,6 @@
 #include "mainScene.h"
+#include "tipScene.h"
+#include "RankScene.h"
 using namespace std;
 
 
@@ -53,6 +55,33 @@ bool mainScene::init()
 	//add a menu
 
 
+	auto label1 = Label::createWithTTF("How to play", "fonts/Marker Felt.ttf", 32);
+	auto label2 = Label::createWithTTF("Ranking", "fonts/Marker Felt.ttf", 32); //ÅÅÐÐ°ñ
+
+	auto item1 = MenuItemLabel::create(label1, CC_CALLBACK_1(mainScene::TipScene, this));
+	auto item2 = MenuItemLabel::create(label2, CC_CALLBACK_1(mainScene::RankScene, this));
+
+	auto menu = Menu::create(item1, item2, NULL);
+	menu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
+	menu->setPosition(winSize.width / 2, winSize.height / 3);
+	menu->alignItemsVerticallyWithPadding(label1->getContentSize().height / 2);
+	addChild(menu);
 
 	return true;
+}
+
+//jump to tips page
+void mainScene::TipScene(Ref *ref)
+{
+	this->stopAllActions();
+	auto scene = tipScene::createScene();
+	Director::getInstance()->replaceScene(scene);
+}
+
+//ranking list page
+void mainScene::RankScene(Ref *ref)
+{
+	this->stopAllActions();
+	auto scene = RankScene::createScene();
+	Director::getInstance()->replaceScene(scene);
 }

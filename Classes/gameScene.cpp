@@ -91,26 +91,120 @@ bool gameScene::init()
 	addChild(destination2woman);
 	addChild(destination2man);
 
+	
+	//a menu of pause and quit
+	auto labelPause = Label::createWithTTF("Pause", "fonts/Marker Felt.ttf", 32);
+	auto itemPause = MenuItemLabel::create(labelPause, CC_CALLBACK_1(gameScene::gameScenePause, this));
+	auto labelQuit = Label::createWithTTF("Quit", "fonts/Marker Felt.ttf", 32);
+	auto itemQuit = MenuItemLabel::create(labelQuit, CC_CALLBACK_1(gameScene::returnToMainScene, this));
+
+	rightTopMenu = Menu::create(itemPause, itemQuit, NULL);
+	rightTopMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
+	rightTopMenu->setPosition(winSize.width - 50, winSize.height - 60);
+	rightTopMenu->alignItemsVerticallyWithPadding(labelPause->getContentSize().height / 2);
+	addChild(rightTopMenu, 10);
+	
+
+
 	//a menu to count to begin the game
 	middleMenu = Menu::create();
 	middleMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
 	middleMenu->setPosition(winSize.width / 2, winSize.height / 2);
 	this->addChild(middleMenu, 10);
+	labelBegin = Label::createWithTTF("3", "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+	itemBegin = MenuItemLabel::create(labelBegin);
+	middleMenu->addChild(itemBegin);
 
 	//add 15 characters into the vector
 	characterQuantity = 15;
 	thisCharacterNum = 0;
 
 	isCharacterExist = false;
+	canBeChose = false;
+	isMenuGetItExist = false;
 	gameWin = false;
 	gameLose = false;
-
+	canBePaused = true;
+	
 	generateRandomNumForArrays();
+
+	scheduleOnce(schedule_selector(gameScene::countDown2), 1.0f);
 	schedule(schedule_selector(gameScene::update));
 
 	return true;
 }
 
+void gameScene::gameScenePause(Ref* sender)
+{
+	if (!gameLose && !gameWin && canBePaused) {
+		auto labelResume = Label::createWithTTF("Resume", "fonts/Marker Felt.ttf", 32);
+		auto itemResume = MenuItemLabel::create(labelResume, CC_CALLBACK_1(gameScene::gameSceneResume, this));
+		auto labelQuit = Label::createWithTTF("Quit", "fonts/Marker Felt.ttf", 32);
+		auto itemQuit = MenuItemLabel::create(labelQuit, CC_CALLBACK_1(gameScene::returnToMainScene, this));
+
+		rightTopMenu->removeFromParent();
+		rightTopMenu = Menu::create(itemResume, itemQuit, NULL);
+		rightTopMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
+		rightTopMenu->setPosition(winSize.width - 50, winSize.height - 60);
+		rightTopMenu->alignItemsVerticallyWithPadding(labelResume->getContentSize().height / 2);
+		addChild(rightTopMenu, 10);
+		if (!Director::getInstance()->isPaused()) {
+			Director::getInstance()->pause();
+		}
+	}
+}
+
+void gameScene::gameSceneResume(Ref* sender)
+{
+	rightTopMenu->removeFromParent();
+	auto labelPause = Label::createWithTTF("Pause", "fonts/Marker Felt.ttf", 32);
+	auto itemPause = MenuItemLabel::create(labelPause, CC_CALLBACK_1(gameScene::gameScenePause, this));
+	auto labelQuit = Label::createWithTTF("Quit", "fonts/Marker Felt.ttf", 32);
+	auto itemQuit = MenuItemLabel::create(labelQuit, CC_CALLBACK_1(gameScene::returnToMainScene, this));
+	rightTopMenu = Menu::create(itemPause, itemQuit, NULL);
+	rightTopMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
+	rightTopMenu->setPosition(winSize.width - 50, winSize.height - 60);
+	rightTopMenu->alignItemsVerticallyWithPadding(labelPause->getContentSize().height / 2);
+	addChild(rightTopMenu, 10);
+	Director::getInstance()->resume();
+}
+
+void gameScene::returnToMainScene(Ref* sender)
+{
+	stopBgm();
+	auto scene = mainScene::createScene();
+	Director::getInstance()->replaceScene(scene);
+	if (Director::getInstance()->isPaused()) {
+		Director::getInstance()->resume();
+	}
+}
+
+void gameScene::countDown2(float dt)
+{
+	middleMenu->removeAllChildren();
+	labelBegin = Label::createWithTTF("2", "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+	itemBegin = MenuItemLabel::create(labelBegin);
+	middleMenu->addChild(itemBegin);
+	scheduleOnce(schedule_selector(gameScene::countDown1), 1.0f);
+}
+
+void gameScene::countDown1(float dt)
+{
+	middleMenu->removeAllChildren();
+	labelBegin = Label::createWithTTF("1", "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+	itemBegin = MenuItemLabel::create(labelBegin);
+	middleMenu->addChild(itemBegin);
+	scheduleOnce(schedule_selector(gameScene::countDown0), 1.0f);
+}
+
+void gameScene::countDown0(float dt)
+{
+	middleMenu->removeAllChildren();
+	labelBegin = Label::createWithTTF("Begin!", "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+	itemBegin = MenuItemLabel::create(labelBegin);
+	middleMenu->addChild(itemBegin);
+	scheduleOnce(schedule_selector(gameScene::gameBegin), 1.0f);
+}
 
 void gameScene::update(float dt)
 {
@@ -130,8 +224,9 @@ void gameScene::update(float dt)
 		if (thisCharacter->getPosition() == Vec2(winSize.width / 2, origin.y - thisCharacter->getContentSize().height)) {
 			thisCharacter->removeFromParentAndCleanup(true);
 			isCharacterExist = false;
+			canBeChose = false;
 
-			bool changemale = random(2);
+			bool changemale=random(2);
 			if (changemale) {
 				changeDestination();
 			}
@@ -145,7 +240,13 @@ void gameScene::update(float dt)
 
 			//change character color
 			changeCharacterColor();
+			canBeChose = true;
 		}
+	}
+	if (isMenuGetItExist) {
+		menuGetIt->removeAllChildren();
+		menuGetIt->removeFromParent();
+		isMenuGetItExist = false;
 	}
 }
 
@@ -258,12 +359,21 @@ void gameScene::gameBegin(float dt)
 	//initialization
 	middleMenu->removeAllChildren();
 	isCharacterExist = false;
+	canBeChose = false;
 	gameLose = false;
 	gameWin = false;
+	isMenuGetItExist = false;
+	canBePaused = true;
+
+	//add a keyboard listener
+	listenerkeyPad = EventListenerKeyboard::create();
+	listenerkeyPad->onKeyPressed = CC_CALLBACK_2(gameScene::onKeyPressed, this);
+	dispatcher->addEventListenerWithFixedPriority(listenerkeyPad, 1);//addEventListenerWithSceneGraphPriority(listenerkeyPad, this);
+
 	//game begin
 	destinaionType = 1;
 	thisCharacterNum = -1;
-
+	
 	//call createCharacter function to begin the characters action
 	timeBetweenDestinations = 3.0f;
 
@@ -272,8 +382,44 @@ void gameScene::gameBegin(float dt)
 
 
 	scheduleOnce(schedule_selector(gameScene::runCharacterA), 0.0);
+	scheduleOnce(schedule_selector(gameScene::showInfo), 4.0);
 }
 
+void gameScene::showInfo(float dt)
+{
+	canBePaused = false;
+	middleMenu->removeAllChildren();
+
+	infoMenu = Menu::create();
+	infoMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
+	infoMenu->setPosition(winSize.width / 2, winSize.height / 2);
+	addChild(infoMenu, 11);
+	auto labelInfo = Label::createWithTTF("I wanna remind you that,\n\nthe WC exchanging is\nSPEEDING UP\n\nGOOD LUCK!", "fonts/Marker Felt.ttf", 40);
+	auto itemInfo = MenuItemLabel::create(labelInfo);
+	infoMenu->addChild(itemInfo);
+
+	menuGetIt = Menu::create();
+	menuGetIt->setAnchorPoint(Vec2::ANCHOR_BOTTOM_RIGHT);
+	menuGetIt->setPosition(winSize.width, origin.y);
+	addChild(menuGetIt, 11);
+	auto labelGetIt = Label::createWithTTF("get it", "fonts/Marker Felt.ttf", 32);
+	auto itemGetIt = MenuItemLabel::create(labelGetIt, CC_CALLBACK_1(gameScene::resumeFromInfo, this));
+	itemGetIt->setPosition(-itemGetIt->getContentSize().width, itemGetIt->getContentSize().height);
+	menuGetIt->addChild(itemGetIt);
+	
+	Director::getInstance()->pause();
+}
+
+void gameScene::resumeFromInfo(Ref* sender)
+{
+	if (Director::getInstance()->isPaused()) {
+		Director::getInstance()->resume();
+		infoMenu->removeAllChildren();
+		infoMenu->removeFromParent();
+		isMenuGetItExist = true;
+		canBePaused = true;
+	}
+}
 
 
 
@@ -292,7 +438,7 @@ void gameScene::runCharacterA(float dt)
 
 		std::string characterType = (manOrWomanArray[thisCharacterNum] == 1) ? "manBlack1.png" : "womanBlack1.png";
 		thisCharacter = Sprite::createWithSpriteFrame(cache->spriteFrameByName(characterType));
-
+		
 		thisCharacter->setAnchorPoint(Vec2::ANCHOR_MIDDLE_BOTTOM);
 		thisCharacter->setPosition(winSize.width / 2, winSize.height);
 		addChild(thisCharacter);
@@ -306,7 +452,7 @@ void gameScene::runCharacterA(float dt)
 			auto actionMove = MoveTo::create(timeBetweenDestinations, Vec2(winSize.width / 2, origin.y - thisCharacter->getContentSize().height));
 			thisCharacter->runAction(actionMove);
 		}
-
+		
 		scheduleOnce(schedule_selector(gameScene::runCharacterB), 4.0);
 	}
 	else if (thisCharacterNum == characterQuantity) {
@@ -318,7 +464,7 @@ void gameScene::runCharacterA(float dt)
 		itemWin->setPosition(0, 30);
 		//label of time
 		int tempTimeInt = playerGameTime;
-		std::string tempTimeString = Value(tempTimeInt).asString();
+		std::string tempTimeString= Value(tempTimeInt).asString();
 		int tempTimeStringLength = tempTimeString.length();
 		std::string tempTimeStringAfterConverted = "";
 		for (int i = 0; i < tempTimeStringLength; i++) {
@@ -353,7 +499,7 @@ void gameScene::runCharacterB(float dt)
 
 		std::string characterType = (manOrWomanArray[thisCharacterNum] == 1) ? "manBlack1.png" : "womanBlack1.png";
 		thisCharacter = Sprite::createWithSpriteFrame(cache->spriteFrameByName(characterType));
-
+		
 		thisCharacter->setAnchorPoint(Vec2::ANCHOR_MIDDLE_BOTTOM);
 		thisCharacter->setPosition(winSize.width / 2, winSize.height);
 		addChild(thisCharacter);
@@ -368,7 +514,7 @@ void gameScene::runCharacterB(float dt)
 			thisCharacter->runAction(actionMove);
 		}
 		scheduleOnce(schedule_selector(gameScene::runCharacterA), 4.0);
-
+		
 	}
 	else if (thisCharacterNum == characterQuantity) {
 		isCharacterExist = false;
@@ -400,4 +546,95 @@ void gameScene::runCharacterB(float dt)
 	}
 }
 
+
+
+
+//keyboard event
+void gameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Event *event)
+{
+	if (isCharacterExist && !Director::getInstance()->isPaused()) {
+		if (keycode == EventKeyboard::KeyCode::KEY_LEFT_ARROW)
+		{
+			if (manOrWomanArray[thisCharacterNum] == destinaionType && characterTypeArray[thisCharacterNum] == 1 && canBeChose) {
+				middleMenu->removeAllChildren();
+				labelBingo = Label::createWithTTF("bingo!", "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+				itemBingo = MenuItemLabel::create(labelBingo);
+				middleMenu->addChild(itemBingo);
+
+				thisCharacter->stopAllActions();
+				thisCharacter->setPosition(leftDestination.x, leftDestination.y - thisCharacter->getContentSize().height / 2);
+				playEffectSucceed();
+
+				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
+
+				bool changemale = random(2);
+				if (changemale) {
+					changeDestination();
+				}
+				scheduleOnce(schedule_selector(gameScene::removeThisCharacterAfterKeyPressed), 0.05);
+			}
+			else {
+				middleMenu->removeAllChildren();
+				labelLose = Label::createWithTTF("You Lose!", "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+				itemLose = MenuItemLabel::create(labelLose);
+				middleMenu->addChild(itemLose);
+				isCharacterExist = false;
+				gameLose = true;
+				gameWin = false;
+				playEffectFail();
+
+				thisCharacter->stopAllActions();
+				thisCharacter->setPosition(leftDestination.x, leftDestination.y - thisCharacter->getContentSize().height / 2);
+				Director::getInstance()->pause();
+			}
+
+		}
+		else if (keycode == EventKeyboard::KeyCode::KEY_RIGHT_ARROW)
+		{
+			if (manOrWomanArray[thisCharacterNum] != destinaionType && characterTypeArray[thisCharacterNum] == 1 && canBeChose) {
+				middleMenu->removeAllChildren();
+				labelBingo = Label::createWithTTF("bingo!", "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+				itemBingo = MenuItemLabel::create(labelBingo);
+				middleMenu->addChild(itemBingo);
+
+				thisCharacter->stopAllActions();
+				thisCharacter->setPosition(rightDestination.x, rightDestination.y - thisCharacter->getContentSize().height / 2);
+				playEffectSucceed();
+
+				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
+
+				bool changemale = random(2);
+				if (changemale) {
+					changeDestination();
+				}
+				scheduleOnce(schedule_selector(gameScene::removeThisCharacterAfterKeyPressed), 0.05);
+			}
+			else {
+				middleMenu->removeAllChildren();
+				labelLose = Label::createWithTTF("You Lose!", "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+				itemLose = MenuItemLabel::create(labelLose);
+				middleMenu->addChild(itemLose);
+				isCharacterExist = false;
+				gameLose = true;
+				gameWin = false;
+				playEffectFail();
+
+				thisCharacter->stopAllActions();
+				thisCharacter->setPosition(rightDestination.x, rightDestination.y - thisCharacter->getContentSize().height / 2);
+				Director::getInstance()->pause();
+			}
+		}
+	}
+	
+}
+
+void gameScene::removeThisCharacterAfterKeyPressed(float dt)
+{
+	thisCharacter->removeFromParentAndCleanup(true);
+	canBeChose = false;
+	isCharacterExist = false;
+	gameWin = false;
+	gameLose = false;
+	
+}
 

@@ -15,13 +15,23 @@ public:
 	void changeCharacterColor();
 	void generateRandomNumForArrays();
 
+	void gameScenePause(Ref*);
+	void gameSceneResume(Ref*);
+	void returnToMainScene(Ref*);
+
+	void countDown2(float);
+	void countDown1(float);
+	void countDown0(float);
 
 	void gameBegin(float);
+	void showInfo(float);
+	void resumeFromInfo(Ref*);
 
 	void runCharacterA(float);
 	void runCharacterB(float);
 
 	void onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Event *event);
+	void removeThisCharacterAfterKeyPressed(float);
 
 	void changeDestination();
 
@@ -37,18 +47,33 @@ private:
 	Size winSize = Director::getInstance()->getWinSize();
 	Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	EventDispatcher* dispatcher = Director::getInstance()->getEventDispatcher();
+	EventListenerKeyboard* listenerkeyPad;
 	SpriteFrameCache* cache;
 
 	Vec2 leftDestination = Vec2(winSize.width / 3 / 2, winSize.height / 5);
 	Vec2 rightDestination = Vec2(winSize.width / 6 * 5, winSize.height / 5);
 
 	Menu* middleMenu;
+	Menu* rightTopMenu;
+	Menu* infoMenu;
+	Menu* menuGetIt;
+	
+
+	int countToBegin;
+
+	Label* labelBegin;
+	MenuItemLabel* itemBegin;
 	Label* labelLose;
 	MenuItemLabel* itemLose;
+	Label* labelBingo;
+	MenuItemLabel* itemBingo;
 
 	bool gameWin;
 	bool gameLose;
 	bool isCharacterExist;
+	bool canBeChose;
+	bool isMenuGetItExist;
+	bool canBePaused;
 
 	Sprite* thisCharacter;
 	int manOrWomanArray[15];
@@ -64,5 +89,6 @@ private:
 	Sprite* destination2man;
 	Sprite* destination2woman;
 	int destinaionType;
+	
 	float timeBetweenDestinations;
 };

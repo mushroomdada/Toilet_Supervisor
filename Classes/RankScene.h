@@ -23,5 +23,6 @@ private:
 	Menu* rightTopMenu;
 
 	EventDispatcher* dispatcher;
-
+	std::string normaldata;
+	std::string infinitedata;
 };

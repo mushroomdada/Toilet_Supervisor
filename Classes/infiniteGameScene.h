@@ -63,9 +63,13 @@ private:
 	long playerGameTime = 0;
 	long thisCharacterBeginTime = 0;
 	float timeBetweenDestinations;
+	float bonus_rate;
+	Label* bonus_label;
 
 	ProgressTimer* burst_bar;
 	ParticleGalaxy* burst_Galaxy;
+	ParticleFire* bouns_Fire;
+	bool bouns_Fire_set;
 	int readytime = 3;
 	bool canReady = true;
 };

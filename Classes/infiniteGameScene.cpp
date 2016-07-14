@@ -151,6 +151,12 @@ bool infinitegameScene::init()
 	burst_bar->setMidpoint(ccp(0.5, 1));
 	burst_bar->setPercentage(0.0f);
 
+	bonus_label = Label::createWithTTF("x1.0", "fonts/Marker Felt.ttf", 32);
+	bonus_label->setPosition(origin.x + 50, winSize.height - 150);
+	bonus_label->setTag(BOUNS_LABEL);
+	bonus_label->enableOutline(Color4B::BLACK, 1);
+	addChild(bonus_label,3);
+
 	schedule(schedule_selector(infinitegameScene::countDown), 1.0f);
 	schedule(schedule_selector(infinitegameScene::bar_descend), 1.0f);
 	return true;
@@ -282,7 +288,9 @@ void infinitegameScene::gameBegin() {
 
 	//call createCharacter function to begin the characters action
 	timeBetweenDestinations = 3.0f;
+	bonus_rate = 1.0;
 	bursttime = false;
+	bouns_Fire_set = false;
 	//schedule(schedule_selector(gameScene::changeDestination), timeBetweenDestinations);
 	runCharacter();
 	this->scheduleUpdate();
@@ -294,6 +302,69 @@ void infinitegameScene::runCharacter()
 {
 	//change destination exchanging frequency
 	//unschedule(schedule_selector(gameScene::changeDestination));
+	std::string data = "x1.0";
+	if (totalpoint > 100000) {
+		timeBetweenDestinations = 1.5f;
+		bonus_rate = 10.0;
+		data = "x10.0";
+		bonus_label->setBMFontSize(46);
+		bonus_label->setColor(ccc3(139, 0, 0));   //Éîºì
+		bouns_Fire->setLife(1.95f);
+		bouns_Fire->setLifeVar(0.35f);
+	}
+	else if (totalpoint > 50000) {
+		timeBetweenDestinations = 1.6f;
+		bonus_rate = 7.0;
+		data = "x7.0";
+		bonus_label->setBMFontSize(42);
+		bonus_label->setColor(ccc3(255, 0, 0));   //´¿ºì
+		bouns_Fire->setLife(1.50f);
+		bouns_Fire->setLifeVar(0.25f);
+	}
+	else if (totalpoint > 25000) {
+		timeBetweenDestinations = 1.7f;
+		bonus_rate = 5.0;
+		data = "x5.0";
+		bonus_label->setBMFontSize(40);
+		bonus_label->setColor(ccc3(205, 92, 92));   //Ó¡¶Èºì
+		if (!bouns_Fire_set) {
+			bouns_Fire_set = true;
+			bouns_Fire = ParticleFire::create();
+			bouns_Fire->setPosition(origin.x + 50, winSize.height - 160);
+			bouns_Fire->setPosVar(Vec2(30, 10));
+			bouns_Fire->setStartSize(55);
+			bouns_Fire->setStartSizeVar(35);
+			bouns_Fire->setEndSize(30);
+			bouns_Fire->setEndSizeVar(15);
+			bouns_Fire->setLife(1.25f);
+			bouns_Fire->setLifeVar(0.35f);
+			addChild(bouns_Fire, 2);
+		}
+	}
+	else if (totalpoint > 10000) {
+		timeBetweenDestinations = 1.9f;
+		bonus_rate = 2.5;
+		data = "x2.5";
+		bonus_label->setBMFontSize(38);
+		bonus_label->setColor(ccc3(255, 255, 0));   //´¿»Æ
+	}
+	else if (totalpoint > 4000) {
+		timeBetweenDestinations = 2.1f;
+		bonus_rate = 1.75;
+		data = "x1.75";
+		bonus_label->setBMFontSize(36);
+	}
+	else if (totalpoint > 1500) {
+		timeBetweenDestinations = 2.5f;
+		bonus_rate = 1.25;
+		data = "x1.25";
+		bonus_label->setBMFontSize(34);
+		bonus_label->setColor(ccc3(255, 255, 224));   //Ç³»Æ
+		
+	}
+	
+	bonus_label->setString(data);
+	
 	//schedule(schedule_selector(gameScene::changeDestination), timeBetweenDestinations);
 	changemale = random(2);
 	changecolor = random(2);
@@ -341,7 +412,7 @@ void infinitegameScene::update(float dt) {
 				return;
 			}
 			else {
-				totalpoint += 150;
+				totalpoint += (bonus_rate*150);
 				char t[10];
 				itoa(totalpoint, t, 10);
 				auto sp_point = (Label*)this->getChildByTag(POINT_LABEL);
@@ -421,11 +492,11 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 					playEffectSucceed();
 					playerGameTime += getCurrentTime() - thisCharacterBeginTime;
 					get_point = 100 + (timeBetweenDestinations / 2 - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / timeBetweenDestinations * 300;
-					totalpoint = totalpoint + get_point;
+					totalpoint = totalpoint + bonus_rate*get_point;
 				}
 				else {
 					get_point = 100 + (BURST_TIME - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / BURST_TIME * 300;
-					totalpoint = totalpoint + get_point;
+					totalpoint = totalpoint + sqrt(bonus_rate)*get_point;
 				}
 				
 
@@ -434,7 +505,13 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 				auto sp_point = (Label*)this->getChildByTag(POINT_LABEL);
 				sp_point->setString(t);
 				
-				itoa(get_point, t, 10);
+				if (!bursttime) {
+					itoa(bonus_rate*get_point, t, 10);
+				}
+				else {
+					itoa(sqrt(bonus_rate)*get_point, t, 10);
+				}
+				
 				auto label = Label::createWithTTF(t, "fonts/Marker Felt.ttf", 24);
 				label->setPosition(leftDestination.x + random(60) - 30, leftDestination.y + random(60) - 30);
 				
@@ -486,11 +563,11 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 					playEffectSucceed();
 					playerGameTime += getCurrentTime() - thisCharacterBeginTime;
 					get_point = 100 + (timeBetweenDestinations / 2 - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / timeBetweenDestinations * 300;
-					totalpoint = totalpoint + get_point;
+					totalpoint = totalpoint + bonus_rate*get_point;
 				}
 				else {
 					get_point = 100 + (BURST_TIME  - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / BURST_TIME * 300;
-					totalpoint = totalpoint + get_point;
+					totalpoint = totalpoint + sqrt(bonus_rate)*get_point;
 				}
 
 				char t[10];
@@ -498,7 +575,12 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 				auto sp_point = (Label*)this->getChildByTag(POINT_LABEL);
 				sp_point->setString(t);
 
-				itoa(get_point, t, 10);
+				if (!bursttime) {
+					itoa(bonus_rate*get_point, t, 10);
+				}
+				else {
+					itoa(sqrt(bonus_rate)*get_point, t, 10);
+				}
 				auto label = Label::createWithTTF(t, "fonts/Marker Felt.ttf", 24);
 				label->setPosition(rightDestination.x + random(60) - 30, rightDestination.y + random(60) - 30);
 				
@@ -603,10 +685,5 @@ long infinitegameScene::getCurrentTime()
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
-}
-bool complare(int a, int b)
-
-{
-	return a>b;
 }
 

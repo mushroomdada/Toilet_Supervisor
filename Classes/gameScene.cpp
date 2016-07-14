@@ -19,21 +19,19 @@ gameScene::~gameScene()
 {
 }
 
-Scene* gameScene::createScene(bool TipsOpen)
+Scene* gameScene::createScene()
 {
 	Scene* scene = Scene::create();
-	auto layer = gameScene::create(TipsOpen);
+	auto layer = gameScene::create();
 	scene->addChild(layer);
 	return scene;
 }
 
-gameScene* gameScene::create(bool TipsOpen)
+gameScene* gameScene::create()
 {
 	gameScene* pRet = new gameScene();
-	
 	if (pRet && pRet->init())
 	{
-		pRet->IsOpenTips = TipsOpen;
 		return pRet;
 	}
 	pRet = NULL;
@@ -58,14 +56,6 @@ bool gameScene::init()
 
 	//add background layer
 	Size backgroundLayerSize(winSize.width / 3, winSize.height);
-
-	score = 0;
-	std::stringstream ss;
-	ss << "Score: " << score;
-	label0 = Label::createWithTTF(ss.str(), "fonts/Marker Felt.ttf", 30);
-	label0->setPosition(winSize.width / 7, winSize.height - winSize.height / 12);
-	addChild(label0, 20);
-
 	Layer* backgroundLayer1 = LayerColor::create(ccc4(30, 144, 255, 255), backgroundLayerSize.width, backgroundLayerSize.height);
 	Layer* backgroundLayer2 = LayerColor::create(ccc4(139, 0, 139, 255), backgroundLayerSize.width, backgroundLayerSize.height);
 	Layer* backgroundLayer3 = LayerColor::create(ccc4(178, 34, 34, 255), backgroundLayerSize.width, backgroundLayerSize.height);
@@ -107,16 +97,6 @@ bool gameScene::init()
 	auto itemPause = MenuItemLabel::create(labelPause, CC_CALLBACK_1(gameScene::gameScenePause, this));
 	auto labelQuit = Label::createWithTTF("Quit", "fonts/Marker Felt.ttf", 32);
 	auto itemQuit = MenuItemLabel::create(labelQuit, CC_CALLBACK_1(gameScene::returnToMainScene, this));
-
-	auto labelUP = Label::createWithTTF("UP", "fonts/Marker Felt.ttf", 32);
-	auto itemUP = MenuItemLabel::create(labelUP, CC_CALLBACK_0(gameScene::MusicUP, this));
-	auto labelDOWN = Label::createWithTTF("DOWN", "fonts/Marker Felt.ttf", 32);
-	auto itemDOWN = MenuItemLabel::create(labelDOWN, CC_CALLBACK_0(gameScene::MusicDOWN, this));
-	TopMenu = Menu::create(itemUP, itemDOWN, NULL);
-	TopMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
-	TopMenu->setPosition(winSize.width /2, winSize.height - 60);
-	TopMenu->alignItemsVerticallyWithPadding(labelPause->getContentSize().height / 2);
-	addChild(TopMenu, 10);
 
 	rightTopMenu = Menu::create(itemPause, itemQuit, NULL);
 	rightTopMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
@@ -192,10 +172,7 @@ void gameScene::gameSceneResume(Ref* sender)
 void gameScene::returnToMainScene(Ref* sender)
 {
 	stopBgm();
-	Scene* scene = Scene::create();
-	auto layer = mainScene::create();
-	layer->IsOpenTips = IsOpenTips;
-	scene->addChild(layer);
+	auto scene = mainScene::createScene();
 	Director::getInstance()->replaceScene(scene);
 	if (Director::getInstance()->isPaused()) {
 		Director::getInstance()->resume();
@@ -351,7 +328,6 @@ void gameScene::preloadMusic()
 	SimpleAudioEngine::getInstance()->preloadBackgroundMusic("music/bgm.mp3");
 	SimpleAudioEngine::getInstance()->preloadEffect("music/succeed.wav");
 	SimpleAudioEngine::getInstance()->preloadEffect("music/fail.wav");
-	
 }
 
 void gameScene::playBgm()
@@ -406,11 +382,6 @@ void gameScene::gameBegin(float dt)
 
 
 	scheduleOnce(schedule_selector(gameScene::runCharacterA), 0.0);
-	if (IsOpenTips)
-		CCLOG("%s \n", "TRUE");
-	else
-		CCLOG("%s \n", "FALSE");
-	if (IsOpenTips)
 	scheduleOnce(schedule_selector(gameScene::showInfo), 4.0);
 }
 
@@ -593,10 +564,6 @@ void gameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Event *eve
 				thisCharacter->stopAllActions();
 				thisCharacter->setPosition(leftDestination.x, leftDestination.y - thisCharacter->getContentSize().height / 2);
 				playEffectSucceed();
-				score += 100;
-				std::stringstream ss;
-				ss << "Score: " << score;
-				label0->setString(ss.str());
 
 				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
 
@@ -633,10 +600,6 @@ void gameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Event *eve
 				thisCharacter->stopAllActions();
 				thisCharacter->setPosition(rightDestination.x, rightDestination.y - thisCharacter->getContentSize().height / 2);
 				playEffectSucceed();
-				score += 100;
-				std::stringstream ss;
-				ss << "Score: " << score;
-				label0->setString(ss.str());
 
 				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
 
@@ -675,18 +638,3 @@ void gameScene::removeThisCharacterAfterKeyPressed(float dt)
 	
 }
 
-void gameScene::MusicUP()
-{
-	CCLOG("%f \n", SimpleAudioEngine::sharedEngine()->getBackgroundMusicVolume());
-	
-	SimpleAudioEngine::sharedEngine()->setBackgroundMusicVolume(SimpleAudioEngine::sharedEngine()->getBackgroundMusicVolume()+0.1f);
-
-}
-
-void gameScene::MusicDOWN()
-{
-	CCLOG("%f \n", SimpleAudioEngine::sharedEngine()->getBackgroundMusicVolume());
-
-	SimpleAudioEngine::sharedEngine()->setBackgroundMusicVolume(SimpleAudioEngine::sharedEngine()->getBackgroundMusicVolume() - 0.1f);
-
-}

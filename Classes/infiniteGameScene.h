@@ -21,7 +21,7 @@ public:
 	void countDown(float);
 	void gameBegin();
 	void runCharacter();
-	void removeThisCharacterAfterKeyPressed();
+	void removeThisCharacterAfterKeyPressed(int point);
 	void onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Event *event);
 
 	long getCurrentTime();

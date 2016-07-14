@@ -4,6 +4,8 @@
 #include "SimpleAudioEngine.h"
 #include <stdlib.h> 
 #include <time.h>
+#include <fstream>
+#include <algorithm>
 
 #define COUNT_DOWN_FONT_SIZE 64
 #define POINT_LABEL 10
@@ -17,6 +19,7 @@
 using namespace CocosDenshion;
 
 bool changemale, changecolor;
+int totalpoint;
 infinitegameScene::infinitegameScene()
 {
 }
@@ -116,11 +119,26 @@ bool infinitegameScene::init()
 	rightTopMenu->alignItemsVerticallyWithPadding(labelPause->getContentSize().height / 2);
 	addChild(rightTopMenu, 10);
 
+
+	auto label = Label::createWithTTF("Total", "fonts/Marker Felt.ttf", 32);
+	label->setPosition(origin.x +60, winSize.height - 20);
+	label->enableOutline(Color4B::RED, 1);
+	//label->setTag(POINT_LABEL);
+	addChild(label);
+
 	//a menu to count to begin the game
 	middleMenu = Menu::create();
 	middleMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
 	middleMenu->setPosition(winSize.width / 2, winSize.height / 2);
 	this->addChild(middleMenu, 10);
+	totalpoint = 0;
+	char t[10];
+	itoa(totalpoint, t, 10);
+	auto label1 = Label::createWithTTF(t, "fonts/Marker Felt.ttf", 32);
+	label1->setPosition(origin.x + 60, winSize.height - 50);
+	label1->setTag(POINT_LABEL);
+	label1->enableOutline(Color4B::RED, 1);
+	addChild(label1);
 
 	schedule(schedule_selector(infinitegameScene::countDown), 1.0f);
 	return true;
@@ -151,7 +169,6 @@ void infinitegameScene::countDown(float dt)
 		
 	}
 }
-
 
 void infinitegameScene::preloadMusic()
 {
@@ -252,7 +269,6 @@ void infinitegameScene::runCharacter()
 {
 	//change destination exchanging frequency
 	//unschedule(schedule_selector(gameScene::changeDestination));
-	
 	//schedule(schedule_selector(gameScene::changeDestination), timeBetweenDestinations);
 	changemale = random(2);
 	changecolor = random(2);
@@ -288,12 +304,24 @@ void infinitegameScene::update(float dt) {
 				itemWin->setPosition(0, 30);
 				//label of time
 
+				char t[10];
+				itoa(totalpoint, t, 10);
+				auto labelTime = Label::createWithTTF(t, "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+				auto itemTime = MenuItemLabel::create(labelTime);
+				itemTime->setPosition(0, -30);
+				middleMenu->addChild(itemWin);
+				middleMenu->addChild(itemTime);
 				gameLose = true;
 				this->unscheduleAllSelectors();
 				return;
 			}
 			else {
-				removeThisCharacterAfterKeyPressed();
+				totalpoint += 150;
+				char t[10];
+				itoa(totalpoint, t, 10);
+				auto sp_point = (Label*)this->getChildByTag(POINT_LABEL);
+				sp_point->setString(t);
+				removeThisCharacterAfterKeyPressed(150);
 				bool changemale = random(2);
 				if (changemale) {
 					changeDestination();
@@ -306,8 +334,11 @@ void infinitegameScene::update(float dt) {
 
 		if (!canBeChose) {
 			if (thisCharacter->getPosition().y <= winSize.height / 2 + 5 && thisCharacter->getPosition().y >= winSize.height / 2 - 5) {
-				changeCharacterColor();
 				
+				//set the begin time
+				thisCharacterBeginTime = getCurrentTime();
+				//change character color
+				changeCharacterColor();
 				canBeChose = true;
 			}
 		}
@@ -325,18 +356,39 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 	if (isCharacterExist && !Director::getInstance()->isPaused()) {
 		if (keycode == EventKeyboard::KeyCode::KEY_LEFT_ARROW )
 		{
+			int get_point;
 			if ((changemale == destinaionType && changecolor == 0) && canBeChose) {
 				thisCharacter->stopAllActions();
 				thisCharacter->setPosition(leftDestination.x, leftDestination.y - thisCharacter->getContentSize().height / 2);
 				playEffectSucceed();
 				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
+				get_point = 100 + (timeBetweenDestinations / 2 - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / timeBetweenDestinations * 300;
+				totalpoint = totalpoint + get_point;
 				
-				changemale = random(2);
+				char t[10];
+				itoa(totalpoint, t, 10);
+				auto sp_point = (Label*)this->getChildByTag(POINT_LABEL);
+				sp_point->setString(t);
+				itoa(get_point, t, 10);
+				auto label = Label::createWithTTF(t, "fonts/Marker Felt.ttf", 24);
+				label->setPosition(leftDestination.x + random(60) - 30, leftDestination.y + random(60) - 30);
+				
+				
+				auto moveby = MoveBy::create(3.0, Vec2(0,random(60) + 70));
+				auto fadeOut = FadeOut::create(3.0);
+
+				auto mySpawn = Spawn::createWithTwoActions(moveby, fadeOut);
+				auto seq = Sequence::create(mySpawn,CallFunc::create(CC_CALLBACK_0(Sprite::removeFromParent,label)) ,nullptr);
+				label->runAction(seq);
+				label->setTag(ANI_LABEL);
+				addChild(label);
+
+				bool changemale = random(2);
 				if (changemale) {
 					changeDestination();
 				}
-				removeThisCharacterAfterKeyPressed();
-
+				removeThisCharacterAfterKeyPressed(get_point);
+				
 			}
 			else if (canBeChose){
 				canBeChose = false;
@@ -344,7 +396,14 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 				auto itemWin = MenuItemLabel::create(labelWin);
 				itemWin->setPosition(0, 30);
 				//label of time
+				char t[10];
+				itoa(totalpoint, t, 10);
+
+				auto labelTime = Label::createWithTTF(t, "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+				auto itemTime = MenuItemLabel::create(labelTime);
+				itemTime->setPosition(0, -30);
 				middleMenu->addChild(itemWin);
+				middleMenu->addChild(itemTime);
 				gameLose = true;
 				this->unscheduleAllSelectors();
 			}
@@ -352,16 +411,39 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 		}
 		else if (keycode == EventKeyboard::KeyCode::KEY_RIGHT_ARROW) {
 			if ((changemale != destinaionType && changecolor == 0) && canBeChose) {
+				int get_point;
 				thisCharacter->stopAllActions();
 				thisCharacter->setPosition(rightDestination.x, rightDestination.y - thisCharacter->getContentSize().height / 2);
 				playEffectSucceed();
 				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
+				get_point = 100 + (timeBetweenDestinations / 2 - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / timeBetweenDestinations * 300;
+				totalpoint = totalpoint + get_point;
 				
+				char t[10];
+				itoa(totalpoint, t, 10);
+				auto sp_point = (Label*)this->getChildByTag(POINT_LABEL);
+				sp_point->setString(t);
+
+				itoa(get_point, t, 10);
+				
+				auto label = Label::createWithTTF(t, "fonts/Marker Felt.ttf", 24);
+				label->setPosition(rightDestination.x + random(60) - 30, rightDestination.y + random(60) - 30);
+				
+
+				auto moveby = MoveBy::create(3.0, Vec2(0, random(60) + 70));
+				auto fadeOut = FadeOut::create(3.0);
+
+				auto mySpawn = Spawn::createWithTwoActions(moveby, fadeOut);
+				auto seq = Sequence::create(mySpawn, CallFunc::create(CC_CALLBACK_0(Sprite::removeFromParent, label)), nullptr);
+				label->runAction(seq);
+				label->setTag(ANI_LABEL);
+				addChild(label);
+
 				bool changemale = random(2);
-					if (changemale) {
-						changeDestination();
+				if (changemale) {
+					changeDestination();
 				}
-				removeThisCharacterAfterKeyPressed();
+				removeThisCharacterAfterKeyPressed(get_point);
 			}
 			else if (canBeChose){
 				canBeChose = false;
@@ -369,7 +451,14 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 				auto itemWin = MenuItemLabel::create(labelWin);
 				itemWin->setPosition(0, 30);
 				//label of time
+				char t[10];
+				itoa(totalpoint, t, 10);
+
+				auto labelTime = Label::createWithTTF(t, "fonts/Marker Felt.ttf", COUNT_DOWN_FONT_SIZE);
+				auto itemTime = MenuItemLabel::create(labelTime);
+				itemTime->setPosition(0, -30);
 				middleMenu->addChild(itemWin);
+				middleMenu->addChild(itemTime);
 				gameLose = true;
 				this->unscheduleAllSelectors();
 			}
@@ -378,7 +467,7 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 
 }
 
-void infinitegameScene::removeThisCharacterAfterKeyPressed()
+void infinitegameScene::removeThisCharacterAfterKeyPressed(int point)
 {
 	thisCharacter->removeFromParentAndCleanup(true);
 	canBeChose = false;
@@ -435,4 +524,3 @@ long infinitegameScene::getCurrentTime()
 	gettimeofday(&tv, NULL);
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
-

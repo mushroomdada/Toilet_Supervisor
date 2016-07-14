@@ -4,6 +4,9 @@
 #include "SimpleAudioEngine.h"
 #include <stdlib.h> 
 #include <time.h>
+#include <fstream>
+#include <algorithm>
+#include <sstream>
 
 #define COUNT_DOWN_FONT_SIZE 64
 
@@ -19,19 +22,21 @@ gameScene::~gameScene()
 {
 }
 
-Scene* gameScene::createScene()
+Scene* gameScene::createScene(bool TipsOpen)
 {
 	Scene* scene = Scene::create();
-	auto layer = gameScene::create();
+	auto layer = gameScene::create(TipsOpen);
 	scene->addChild(layer);
 	return scene;
 }
 
-gameScene* gameScene::create()
+gameScene* gameScene::create(bool TipsOpen)
 {
 	gameScene* pRet = new gameScene();
+	
 	if (pRet && pRet->init())
 	{
+		pRet->IsOpenTips = TipsOpen;
 		return pRet;
 	}
 	pRet = NULL;
@@ -56,6 +61,14 @@ bool gameScene::init()
 
 	//add background layer
 	Size backgroundLayerSize(winSize.width / 3, winSize.height);
+
+	score = 0;
+	std::stringstream ss;
+	ss << "Score: " << score;
+	label0 = Label::createWithTTF(ss.str(), "fonts/Marker Felt.ttf", 30);
+	label0->setPosition(winSize.width / 7, winSize.height - winSize.height / 12);
+	addChild(label0, 20);
+
 	Layer* backgroundLayer1 = LayerColor::create(ccc4(30, 144, 255, 255), backgroundLayerSize.width, backgroundLayerSize.height);
 	Layer* backgroundLayer2 = LayerColor::create(ccc4(139, 0, 139, 255), backgroundLayerSize.width, backgroundLayerSize.height);
 	Layer* backgroundLayer3 = LayerColor::create(ccc4(178, 34, 34, 255), backgroundLayerSize.width, backgroundLayerSize.height);
@@ -97,6 +110,16 @@ bool gameScene::init()
 	auto itemPause = MenuItemLabel::create(labelPause, CC_CALLBACK_1(gameScene::gameScenePause, this));
 	auto labelQuit = Label::createWithTTF("Quit", "fonts/Marker Felt.ttf", 32);
 	auto itemQuit = MenuItemLabel::create(labelQuit, CC_CALLBACK_1(gameScene::returnToMainScene, this));
+
+	auto labelUP = Label::createWithTTF("UP", "fonts/Marker Felt.ttf", 32);
+	auto itemUP = MenuItemLabel::create(labelUP, CC_CALLBACK_0(gameScene::MusicUP, this));
+	auto labelDOWN = Label::createWithTTF("DOWN", "fonts/Marker Felt.ttf", 32);
+	auto itemDOWN = MenuItemLabel::create(labelDOWN, CC_CALLBACK_0(gameScene::MusicDOWN, this));
+	TopMenu = Menu::create(itemUP, itemDOWN, NULL);
+	TopMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
+	TopMenu->setPosition(winSize.width /2, winSize.height - 60);
+	TopMenu->alignItemsVerticallyWithPadding(labelPause->getContentSize().height / 2);
+	addChild(TopMenu, 10);
 
 	rightTopMenu = Menu::create(itemPause, itemQuit, NULL);
 	rightTopMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
@@ -172,7 +195,10 @@ void gameScene::gameSceneResume(Ref* sender)
 void gameScene::returnToMainScene(Ref* sender)
 {
 	stopBgm();
-	auto scene = mainScene::createScene();
+	Scene* scene = Scene::create();
+	auto layer = mainScene::create();
+	layer->IsOpenTips = IsOpenTips;
+	scene->addChild(layer);
 	Director::getInstance()->replaceScene(scene);
 	if (Director::getInstance()->isPaused()) {
 		Director::getInstance()->resume();
@@ -328,6 +354,7 @@ void gameScene::preloadMusic()
 	SimpleAudioEngine::getInstance()->preloadBackgroundMusic("music/bgm.mp3");
 	SimpleAudioEngine::getInstance()->preloadEffect("music/succeed.wav");
 	SimpleAudioEngine::getInstance()->preloadEffect("music/fail.wav");
+	
 }
 
 void gameScene::playBgm()
@@ -382,6 +409,11 @@ void gameScene::gameBegin(float dt)
 
 
 	scheduleOnce(schedule_selector(gameScene::runCharacterA), 0.0);
+	if (IsOpenTips)
+		CCLOG("%s \n", "TRUE");
+	else
+		CCLOG("%s \n", "FALSE");
+	if (IsOpenTips)
 	scheduleOnce(schedule_selector(gameScene::showInfo), 4.0);
 }
 
@@ -394,7 +426,7 @@ void gameScene::showInfo(float dt)
 	infoMenu->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
 	infoMenu->setPosition(winSize.width / 2, winSize.height / 2);
 	addChild(infoMenu, 11);
-	auto labelInfo = Label::createWithTTF("I wanna remind you that,\n\nthe WC exchanging is\nSPEEDING UP\n\nGOOD LUCK!", "fonts/Marker Felt.ttf", 40);
+	auto labelInfo = Label::createWithTTF("I wanna remind you that,\n\nthe people coming is\nSPEEDING UP\n\nGOOD LUCK!", "fonts/Marker Felt.ttf", 40);
 	auto itemInfo = MenuItemLabel::create(labelInfo);
 	infoMenu->addChild(itemInfo);
 
@@ -527,13 +559,16 @@ void gameScene::runCharacterB(float dt)
 		int tempTimeInt = playerGameTime;
 		std::string tempTimeString = Value(tempTimeInt).asString();
 		int tempTimeStringLength = tempTimeString.length();
-		std::string tempTimeStringAfterConverted = "\nYour Time:\n";
+		std::string tempTimeStringAfterConverted = "";
 		for (int i = 0; i < tempTimeStringLength; i++) {
 			if (i == tempTimeStringLength - 3) {
 				tempTimeStringAfterConverted += '.';
 			}
 			tempTimeStringAfterConverted += tempTimeString[i];
 		}
+		setranking(tempTimeStringAfterConverted);                       //ÅÅÐÐ°ñ
+		tempTimeStringAfterConverted = "\nYour Time:\n" + tempTimeStringAfterConverted;
+		//log(tempTimeString.c_str());
 		tempTimeStringAfterConverted += "s";
 		auto labelTime = Label::createWithTTF(tempTimeStringAfterConverted, "fonts/Marker Felt.ttf", 40);
 		auto itemTime = MenuItemLabel::create(labelTime);
@@ -564,6 +599,10 @@ void gameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Event *eve
 				thisCharacter->stopAllActions();
 				thisCharacter->setPosition(leftDestination.x, leftDestination.y - thisCharacter->getContentSize().height / 2);
 				playEffectSucceed();
+				score += 100;
+				std::stringstream ss;
+				ss << "Score: " << score;
+				label0->setString(ss.str());
 
 				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
 
@@ -600,6 +639,10 @@ void gameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Event *eve
 				thisCharacter->stopAllActions();
 				thisCharacter->setPosition(rightDestination.x, rightDestination.y - thisCharacter->getContentSize().height / 2);
 				playEffectSucceed();
+				score += 100;
+				std::stringstream ss;
+				ss << "Score: " << score;
+				label0->setString(ss.str());
 
 				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
 
@@ -638,3 +681,63 @@ void gameScene::removeThisCharacterAfterKeyPressed(float dt)
 	
 }
 
+void gameScene::MusicUP()
+{
+	CCLOG("%f \n", SimpleAudioEngine::sharedEngine()->getBackgroundMusicVolume());
+	
+	SimpleAudioEngine::sharedEngine()->setBackgroundMusicVolume(SimpleAudioEngine::sharedEngine()->getBackgroundMusicVolume()+0.1f);
+
+}
+
+void gameScene::MusicDOWN()
+{
+	CCLOG("%f \n", SimpleAudioEngine::sharedEngine()->getBackgroundMusicVolume());
+
+	SimpleAudioEngine::sharedEngine()->setBackgroundMusicVolume(SimpleAudioEngine::sharedEngine()->getBackgroundMusicVolume() - 0.1f);
+
+}
+bool complareB(int a, int b)
+
+{
+	return a<b;
+}
+std::string doubleConverToString(double d){
+	std::ostringstream os;
+	if (os << d) return os.str();
+	return "invalid conversion";
+}
+void gameScene::setranking(std::string temp) {
+	std::string data = "";
+	std::fstream file;
+	double this_time = atof(temp.c_str());
+	double rankList[11];
+	char str[100];
+	file.open("RankList.a", std::ios::in);
+	if (!file) {
+		file.open("RankList.a", std::ios::out);
+		data = "11\n";
+		for (int i = 0; i < 10; i++) {
+			file << data;
+		}
+		file.close();
+		file.open("RankList.a", std::ios::in);
+	}
+
+	for (int i = 0; i < 10; i++) {
+		file.getline(str, 100);
+		log(str);
+		rankList[i] = atof(str);
+	}
+	file.close();
+	rankList[10] = this_time;
+	std::sort(rankList, rankList + 11, complareB);
+
+	//Ð´ÎÄµµ
+	char t[10];
+	file.open("RankList.a", std::ios::out);
+	for (int i = 0; i < 10; i++) {
+		data = doubleConverToString(rankList[i]);
+		file << data << '\n';
+	}
+	file.close();
+}

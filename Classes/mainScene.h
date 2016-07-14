@@ -10,16 +10,17 @@ public:
 	static Scene* createScene();
 	static mainScene* create();
 	bool init();
-
-private:
-	mainScene();
-	~mainScene();
-
 	void GameScene(Ref *sender);
 	void InfoScene(Ref *sender);
 	void TipScene(Ref* sender);
 	void RankScene(Ref* sender);
-	
+	void InfiniteGameScene(Ref* sender);
+	void Setting(Ref* sender);
+	bool IsOpenTips = true;
+private:
+	mainScene();
+	~mainScene();
+
 	EventDispatcher* dispatcher;
 
 };

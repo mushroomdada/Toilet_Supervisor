@@ -15,8 +15,7 @@ public:
 	void TipScene(Ref* sender);
 	void RankScene(Ref* sender);
 	void InfiniteGameScene(Ref* sender);
-	void Setting(Ref* sender);
-	bool IsOpenTips = true;
+
 private:
 	mainScene();
 	~mainScene();

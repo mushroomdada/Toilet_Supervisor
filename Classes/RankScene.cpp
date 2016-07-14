@@ -35,18 +35,17 @@ RankScene* RankScene::create()
 
 
 
-
+string normaldata = "";
+string infinitedata = "";
 bool RankScene::init()
 {
-	normaldata = "";
-	infinitedata = "";
 	fstream file;
 	char str[100];
 	//读取普通模式排名信息文件
 	file.open("RankList.a", ios::in);
 	if (!file) {
 		file.open("RankList.a", ios::out);
-		normaldata = "9\n";
+		normaldata = "XXX 9\n";
 		for (int i = 0; i < 10; i++) {
 			file << normaldata;
 		}
@@ -55,7 +54,7 @@ bool RankScene::init()
 	}
 	
 	for (int i = 0; i < 10; i++) {
-		file.getline(str, 100);
+		file.getline(str, 3000);
 		//char *p;
 		//p = strtok(str, " ");
 		normaldata = normaldata + str + '\n';
@@ -66,7 +65,7 @@ bool RankScene::init()
 	file.open("RankList.b", ios::in);
 	if (!file) {
 		file.open("RankList.b", ios::out);
-		infinitedata = "11\n";
+		infinitedata = "XXX 11\n";
 		for (int i = 0; i < 10; i++) {
 			file << infinitedata;
 		}
@@ -75,7 +74,7 @@ bool RankScene::init()
 	}
 
 	for (int i = 0; i < 10; i++) {
-		file.getline(str, 100);
+		file.getline(str, 3000);
 		infinitedata = infinitedata + str + '\n';
 	}
 	file.close();

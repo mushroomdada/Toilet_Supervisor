@@ -19,6 +19,7 @@ public:
 	void changeDestination();
 	void changeCharacterColor();
 	void countDown(float);
+	void bar_descend(float);
 	void gameBegin();
 	void runCharacter();
 	void removeThisCharacterAfterKeyPressed(int point);
@@ -49,6 +50,7 @@ private:
 	Label* labelBegin;
 	MenuItemLabel* itemBegin;
 	Sprite* thisCharacter;
+	bool bursttime;
 	bool gameLose;
 	bool canBePaused;
 	bool isCharacterExist;
@@ -62,6 +64,8 @@ private:
 	long thisCharacterBeginTime = 0;
 	float timeBetweenDestinations;
 
+	ProgressTimer* burst_bar;
+	ParticleGalaxy* burst_Galaxy;
 	int readytime = 3;
 	bool canReady = true;
 };

@@ -140,7 +140,19 @@ bool infinitegameScene::init()
 	label1->enableOutline(Color4B::RED, 1);
 	addChild(label1);
 
+	Sprite*bg1 = Sprite::create("bar2.png");
+	burst_bar = ProgressTimer::create(bg1);
+	burst_bar->setPosition(ccp(winSize.width / 2, winSize.height));
+	burst_bar->setAnchorPoint(Vec2(0.5, 1));
+	//pro1->setRotation(40.0f);
+	this->addChild(burst_bar,2);
+	burst_bar->setType(kCCProgressTimerTypeBar);
+	burst_bar->setBarChangeRate(ccp(0, 1));
+	burst_bar->setMidpoint(ccp(0.5, 1));
+	burst_bar->setPercentage(0.0f);
+
 	schedule(schedule_selector(infinitegameScene::countDown), 1.0f);
+	schedule(schedule_selector(infinitegameScene::bar_descend), 1.0f);
 	return true;
 }
 
@@ -167,6 +179,18 @@ void infinitegameScene::countDown(float dt)
 			gameBegin();
 		}
 		
+	}
+}
+
+void infinitegameScene::bar_descend(float dt){
+	//char t[10];
+	//itoa(burst_bar->getPercentage(), t, 10);
+	//log(t);
+	if (bursttime) {
+		burst_bar->setPercentage(burst_bar->getPercentage() - 15.0);
+	}
+	else {
+		burst_bar->setPercentage(burst_bar->getPercentage() - 1.0);
 	}
 }
 
@@ -258,6 +282,7 @@ void infinitegameScene::gameBegin() {
 
 	//call createCharacter function to begin the characters action
 	timeBetweenDestinations = 3.0f;
+	bursttime = false;
 	//schedule(schedule_selector(gameScene::changeDestination), timeBetweenDestinations);
 	runCharacter();
 	this->scheduleUpdate();
@@ -295,7 +320,7 @@ void infinitegameScene::update(float dt) {
 	//brust_bar->setPercentage(100);
 	if (isCharacterExist) {
 		if (thisCharacter->getPositionX() == winSize.width / 2 && thisCharacter->getPositionY()< origin.y - thisCharacter->getContentSize().height) {
-			if (changecolor == 0) {
+			if (changecolor == 0&&!bursttime) {
 				isCharacterExist = false;
 				middleMenu->removeAllChildren();
 				//label of win
@@ -334,11 +359,43 @@ void infinitegameScene::update(float dt) {
 
 		if (!canBeChose) {
 			if (thisCharacter->getPosition().y <= winSize.height / 2 + 5 && thisCharacter->getPosition().y >= winSize.height / 2 - 5) {
-				
+				if (burst_bar->getPercentage() >= 98) {
+					bursttime = true;
+					burst_Galaxy = ParticleGalaxy::create();
+					burst_Galaxy->setPosition(winSize.width / 2, winSize.height - 50);
+					addChild(burst_Galaxy, 4);
+				}
+				else {
+					bursttime = false;
+				}
 				//set the begin time
 				thisCharacterBeginTime = getCurrentTime();
-				//change character color
-				changeCharacterColor();
+				if (bursttime) {
+					//Texture2D *tex;
+					thisCharacterBeginTime = getCurrentTime();
+					Sprite* a = Sprite::create("ManAndWomanRed.png");
+					thisCharacter->removeFromParentAndCleanup(true);
+					thisCharacter = a;
+					thisCharacter->setAnchorPoint(Vec2::ANCHOR_MIDDLE_BOTTOM);
+					thisCharacter->setPosition(winSize.width / 2, winSize.height/2);
+					addChild(thisCharacter);
+
+
+					//action move
+					auto actionMove = MoveTo::create(BURST_TIME, Vec2(winSize.width / 2, origin.y - thisCharacter->getContentSize().height - 5));
+					thisCharacter->runAction(actionMove);
+					//a->setTag(BURST);
+					//tex = a->getTexture();
+					//thisCharacter->setTexture(tex);
+					thisCharacter->setTag(BURST);
+					//addChild(a);
+
+				}
+				else {
+					//change character color
+					changeCharacterColor();
+				}
+				
 				canBeChose = true;
 			}
 		}
@@ -357,18 +414,26 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 		if (keycode == EventKeyboard::KeyCode::KEY_LEFT_ARROW )
 		{
 			int get_point;
-			if ((changemale == destinaionType && changecolor == 0) && canBeChose) {
-				thisCharacter->stopAllActions();
-				thisCharacter->setPosition(leftDestination.x, leftDestination.y - thisCharacter->getContentSize().height / 2);
-				playEffectSucceed();
-				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
-				get_point = 100 + (timeBetweenDestinations / 2 - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / timeBetweenDestinations * 300;
-				totalpoint = totalpoint + get_point;
+			if (((changemale == destinaionType && changecolor == 0) || bursttime) && canBeChose) {
+				if (!bursttime) {
+					thisCharacter->stopAllActions();
+					thisCharacter->setPosition(leftDestination.x, leftDestination.y - thisCharacter->getContentSize().height / 2);
+					playEffectSucceed();
+					playerGameTime += getCurrentTime() - thisCharacterBeginTime;
+					get_point = 100 + (timeBetweenDestinations / 2 - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / timeBetweenDestinations * 300;
+					totalpoint = totalpoint + get_point;
+				}
+				else {
+					get_point = 100 + (BURST_TIME - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / BURST_TIME * 300;
+					totalpoint = totalpoint + get_point;
+				}
 				
+
 				char t[10];
 				itoa(totalpoint, t, 10);
 				auto sp_point = (Label*)this->getChildByTag(POINT_LABEL);
 				sp_point->setString(t);
+				
 				itoa(get_point, t, 10);
 				auto label = Label::createWithTTF(t, "fonts/Marker Felt.ttf", 24);
 				label->setPosition(leftDestination.x + random(60) - 30, leftDestination.y + random(60) - 30);
@@ -383,11 +448,14 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 				label->setTag(ANI_LABEL);
 				addChild(label);
 
-				bool changemale = random(2);
-				if (changemale) {
-					changeDestination();
+				
+				if (!bursttime) {
+					bool changemale = random(2);
+					if (changemale) {
+						changeDestination();
+					}
+					removeThisCharacterAfterKeyPressed(get_point);
 				}
-				removeThisCharacterAfterKeyPressed(get_point);
 				
 			}
 			else if (canBeChose){
@@ -410,22 +478,27 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 
 		}
 		else if (keycode == EventKeyboard::KeyCode::KEY_RIGHT_ARROW) {
-			if ((changemale != destinaionType && changecolor == 0) && canBeChose) {
+			if (((changemale != destinaionType && changecolor == 0) || bursttime) && canBeChose) {
 				int get_point;
-				thisCharacter->stopAllActions();
-				thisCharacter->setPosition(rightDestination.x, rightDestination.y - thisCharacter->getContentSize().height / 2);
-				playEffectSucceed();
-				playerGameTime += getCurrentTime() - thisCharacterBeginTime;
-				get_point = 100 + (timeBetweenDestinations / 2 - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / timeBetweenDestinations * 300;
-				totalpoint = totalpoint + get_point;
-				
+				if (!bursttime) {
+					thisCharacter->stopAllActions();
+					thisCharacter->setPosition(rightDestination.x, rightDestination.y - thisCharacter->getContentSize().height / 2);
+					playEffectSucceed();
+					playerGameTime += getCurrentTime() - thisCharacterBeginTime;
+					get_point = 100 + (timeBetweenDestinations / 2 - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / timeBetweenDestinations * 300;
+					totalpoint = totalpoint + get_point;
+				}
+				else {
+					get_point = 100 + (BURST_TIME  - ((float)getCurrentTime() - thisCharacterBeginTime) / 1000) / BURST_TIME * 300;
+					totalpoint = totalpoint + get_point;
+				}
+
 				char t[10];
 				itoa(totalpoint, t, 10);
 				auto sp_point = (Label*)this->getChildByTag(POINT_LABEL);
 				sp_point->setString(t);
 
 				itoa(get_point, t, 10);
-				
 				auto label = Label::createWithTTF(t, "fonts/Marker Felt.ttf", 24);
 				label->setPosition(rightDestination.x + random(60) - 30, rightDestination.y + random(60) - 30);
 				
@@ -439,11 +512,14 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 				label->setTag(ANI_LABEL);
 				addChild(label);
 
-				bool changemale = random(2);
-				if (changemale) {
-					changeDestination();
+				
+				if (!bursttime) {
+					bool changemale = random(2);
+					if (changemale) {
+						changeDestination();
+					}
+					removeThisCharacterAfterKeyPressed(get_point);
 				}
-				removeThisCharacterAfterKeyPressed(get_point);
 			}
 			else if (canBeChose){
 				canBeChose = false;
@@ -469,6 +545,10 @@ void infinitegameScene::onKeyPressed(EventKeyboard::KeyCode keycode, cocos2d::Ev
 
 void infinitegameScene::removeThisCharacterAfterKeyPressed(int point)
 {
+	if (bursttime) {
+		burst_Galaxy->removeFromParentAndCleanup(true);
+	}
+	burst_bar->setPercentage(burst_bar->getPercentage() + (float)point*0.03);       //0.03
 	thisCharacter->removeFromParentAndCleanup(true);
 	canBeChose = false;
 	isCharacterExist = false;
@@ -524,3 +604,9 @@ long infinitegameScene::getCurrentTime()
 	gettimeofday(&tv, NULL);
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
+bool complare(int a, int b)
+
+{
+	return a>b;
+}
+

@@ -7,8 +7,8 @@ USING_NS_CC;
 class gameScene :public Layer
 {
 public:
-	static Scene* createScene();
-	static gameScene* create();
+	static Scene* createScene(bool TipsOpen);
+	static gameScene* create(bool TipsOpen);
 	bool init();
 	void update(float);
 	long getCurrentTime();
@@ -40,6 +40,9 @@ public:
 	void playEffectSucceed();
 	void playEffectFail();
 	void stopBgm();
+	bool IsOpenTips = true;
+	void MusicUP();
+	void MusicDOWN();
 
 private:
 	gameScene();
@@ -54,13 +57,14 @@ private:
 	Vec2 rightDestination = Vec2(winSize.width / 6 * 5, winSize.height / 5);
 
 	Menu* middleMenu;
+	Menu* TopMenu;
 	Menu* rightTopMenu;
 	Menu* infoMenu;
 	Menu* menuGetIt;
 	
 
 	int countToBegin;
-
+	Label* label0;
 	Label* labelBegin;
 	MenuItemLabel* itemBegin;
 	Label* labelLose;
@@ -91,4 +95,5 @@ private:
 	int destinaionType;
 	
 	float timeBetweenDestinations;
+	int score;
 };
